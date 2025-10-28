@@ -10,6 +10,16 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requiredRole, allowedRoles }: ProtectedRouteProps) => {
   const { user, isAuthenticated } = useAuth();
 
+  // While validating token, show loading state instead of redirecting
+  if (user === null && localStorage.getItem('token')) {
+    // Still validating - show loading or wait
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

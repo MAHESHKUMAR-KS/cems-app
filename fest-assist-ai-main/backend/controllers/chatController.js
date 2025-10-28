@@ -1,115 +1,37 @@
+require('dotenv').config();
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Chat = require('../models/Chat');
 const Event = require('../models/Event');
 
-/**
- * Local rule-based chatbot response generator
- * No external API calls - fully local implementation
- */
-const generateBotResponse = async (query) => {
-  const lowerQuery = query.toLowerCase();
+// Initialize Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Function to query Gemini
+const generateBotResponse = async (query, context = '') => {
   try {
-    // Event count queries
-    if (lowerQuery.includes('how many events') || lowerQuery.includes('total events')) {
-      const count = await Event.countDocuments();
-      return `Currently, there are ${count} events available in our system. Would you like to explore them by category?`;
-    }
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Today/upcoming events
-    if (lowerQuery.includes('today') || lowerQuery.includes('upcoming')) {
-      const upcomingEvents = await Event.find({
-        date: { $gte: new Date() },
-      })
-        .sort({ date: 1 })
-        .limit(3);
+    // Add event info context (for smarter replies)
+    const events = await Event.find().limit(5);
+    const eventContext = events
+      .map(e => `${e.title} (${e.category}) on ${new Date(e.date).toLocaleDateString()} at ${e.venue}`)
+      .join('\n');
 
-      if (upcomingEvents.length > 0) {
-        const eventList = upcomingEvents
-          .map((e) => `• ${e.title} (${e.category}) on ${new Date(e.date).toLocaleDateString()}`)
-          .join('\n');
-        return `Here are the upcoming events:\n${eventList}\n\nWould you like details on any specific event?`;
-      }
-      return "There are no upcoming events scheduled at the moment. Check back soon!";
-    }
+    const fullPrompt = `
+You are CEMS AI Assistant, a helpful chatbot for a college event management system.
+Use the following event data for context if needed:
+${eventContext || 'No events found.'}
 
-    // Technical events
-    if (lowerQuery.includes('technical') || lowerQuery.includes('tech') || lowerQuery.includes('hackathon')) {
-      const techEvents = await Event.find({ category: 'technical' });
-      if (techEvents.length > 0) {
-        const eventList = techEvents
-          .map((e) => `• ${e.title} at ${e.venue} on ${new Date(e.date).toLocaleDateString()}`)
-          .join('\n');
-        return `Here are our technical events:\n${eventList}\n\nThese events are perfect for coding enthusiasts!`;
-      }
-      return "We don't have any technical events scheduled right now. Stay tuned!";
-    }
+User query: ${query}
+Conversation context: ${context}
+Keep answers short, helpful, and relevant to college events or event management.
+    `;
 
-    // Cultural events
-    if (lowerQuery.includes('cultural') || lowerQuery.includes('music') || lowerQuery.includes('dance') || lowerQuery.includes('art')) {
-      const culturalEvents = await Event.find({ category: 'cultural' });
-      if (culturalEvents.length > 0) {
-        const eventList = culturalEvents
-          .map((e) => `• ${e.title} at ${e.venue} on ${new Date(e.date).toLocaleDateString()}`)
-          .join('\n');
-        return `Check out these cultural events:\n${eventList}\n\nExperience the diversity of our campus culture!`;
-      }
-      return "No cultural events are currently scheduled. Check back later!";
-    }
-
-    // Sports events
-    if (lowerQuery.includes('sports') || lowerQuery.includes('sport') || lowerQuery.includes('game') || lowerQuery.includes('tournament')) {
-      const sportsEvents = await Event.find({ category: 'sports' });
-      if (sportsEvents.length > 0) {
-        const eventList = sportsEvents
-          .map((e) => `• ${e.title} at ${e.venue} on ${new Date(e.date).toLocaleDateString()}`)
-          .join('\n');
-        return `Here are our sports events:\n${eventList}\n\nReady to compete?`;
-      }
-      return "No sports events are scheduled at the moment. Stay active!";
-    }
-
-    // Workshop events
-    if (lowerQuery.includes('workshop') || lowerQuery.includes('training') || lowerQuery.includes('learn')) {
-      const workshops = await Event.find({ category: 'workshop' });
-      if (workshops.length > 0) {
-        const eventList = workshops
-          .map((e) => `• ${e.title} at ${e.venue} on ${new Date(e.date).toLocaleDateString()}`)
-          .join('\n');
-        return `Available workshops:\n${eventList}\n\nExpand your skills with these hands-on sessions!`;
-      }
-      return "No workshops are available right now. Keep learning!";
-    }
-
-    // Registration help
-    if (lowerQuery.includes('register') || lowerQuery.includes('signup') || lowerQuery.includes('how to join')) {
-      return "To register for an event:\n1. Browse available events\n2. Click on an event to view details\n3. Click the 'Register' button\n4. You must be logged in as a student to register\n\nNeed help finding a specific event?";
-    }
-
-    // My events
-    if (lowerQuery.includes('my events') || lowerQuery.includes('registered events') || lowerQuery.includes('my registrations')) {
-      return "You can view all your registered events in your Student Dashboard. Navigate to the dashboard from the main menu to see your complete event list.";
-    }
-
-    // Event categories
-    if (lowerQuery.includes('categories') || lowerQuery.includes('types of events')) {
-      return "We have 4 event categories:\n• Technical - Hackathons, tech talks, coding competitions\n• Cultural - Music, dance, drama, art exhibitions\n• Sports - Tournaments, championships, athletic meets\n• Workshop - Skill-building sessions, training programs\n\nWhich category interests you?";
-    }
-
-    // Help/general
-    if (lowerQuery.includes('help') || lowerQuery.includes('what can you do')) {
-      return "I'm CEMS AI Assistant! I can help you with:\n• Finding events by category or date\n• Event registration information\n• Viewing upcoming events\n• Understanding event categories\n• General event queries\n\nWhat would you like to know?";
-    }
-
-    // Venue information
-    if (lowerQuery.includes('venue') || lowerQuery.includes('location') || lowerQuery.includes('where')) {
-      return "Each event has a specific venue. You can see the venue details on the event page. Common venues include:\n• Main Auditorium\n• Sports Complex\n• Open Air Theater\n• Computer Labs\n• Innovation Hub\n\nLooking for a specific event's location?";
-    }
-
-    // Default response
-    return "I can help you find events, get registration info, and answer questions about our college event management system. Try asking about:\n• Upcoming events\n• Events by category (technical, cultural, sports, workshop)\n• How to register\n• Your registered events\n\nWhat would you like to know?";
+    const result = await model.generateContent(fullPrompt);
+    return result.response.text() || "Sorry, I couldn’t generate a response.";
   } catch (error) {
-    console.error('Bot response error:', error);
-    return "I encountered an issue processing your request. Please try asking about upcoming events or event categories.";
+    console.error('Gemini API error:', error);
+    return "I'm having trouble accessing event data right now. Please try again later.";
   }
 };
 
@@ -130,7 +52,7 @@ const startChat = async (req, res) => {
       messages: [
         {
           role: 'assistant',
-          content: "Hi! I'm CEMS AI Assistant. How can I help you with events today?",
+          content: "Hi! I'm CEMS AI Assistant powered by Gemini. How can I help you today?",
           timestamp: new Date(),
         },
       ],
@@ -145,33 +67,24 @@ const startChat = async (req, res) => {
     });
   } catch (error) {
     console.error('Start chat error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error starting chat',
-    });
+    res.status(500).json({ success: false, message: 'Error starting chat' });
   }
 };
 
 /**
- * @desc    Send message and get response
+ * @desc    Send message and get response from Gemini
  * @route   POST /api/chat/message
  * @access  Public
  */
 const sendMessage = async (req, res) => {
   try {
     const { conversationId, message } = req.body;
-
-    if (!conversationId || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Conversation ID and message are required',
-      });
-    }
+    if (!conversationId || !message)
+      return res.status(400).json({ success: false, message: 'Conversation ID and message are required' });
 
     let chat = await Chat.findOne({ conversationId });
 
     if (!chat) {
-      // Create new chat if doesn't exist
       chat = await Chat.create({
         userId: req.user ? req.user._id : null,
         conversationId,
@@ -181,26 +94,22 @@ const sendMessage = async (req, res) => {
     }
 
     // Add user message
-    chat.messages.push({
-      role: 'user',
-      content: message,
-      timestamp: new Date(),
-    });
+    chat.messages.push({ role: 'user', content: message, timestamp: new Date() });
 
-    // Generate bot response
-    const botResponse = await generateBotResponse(message);
+    // Get the last 5 messages as context
+    const context = chat.messages
+      .slice(-5)
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n');
 
-    // Add bot response
+    // Get Gemini response
+    const botResponse = await generateBotResponse(message, context);
+
     chat.messages.push({
       role: 'assistant',
       content: botResponse,
       timestamp: new Date(),
     });
-
-    // Update title if it's the first user message
-    if (chat.title === 'New Conversation' && chat.messages.length === 3) {
-      chat.title = message.slice(0, 30) + (message.length > 30 ? '...' : '');
-    }
 
     await chat.save();
 
@@ -213,10 +122,7 @@ const sendMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('Send message error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error sending message',
-    });
+    res.status(500).json({ success: false, message: 'Error sending message' });
   }
 };
 
@@ -228,10 +134,7 @@ const sendMessage = async (req, res) => {
 const getChatHistory = async (req, res) => {
   try {
     const userId = req.params.userId || req.user._id;
-
-    const chats = await Chat.find({ userId })
-      .sort({ updatedAt: -1 })
-      .select('conversationId title messages updatedAt');
+    const chats = await Chat.find({ userId }).sort({ updatedAt: -1 }).select('conversationId title messages updatedAt');
 
     res.status(200).json({
       success: true,
@@ -240,10 +143,7 @@ const getChatHistory = async (req, res) => {
     });
   } catch (error) {
     console.error('Get chat history error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching chat history',
-    });
+    res.status(500).json({ success: false, message: 'Error fetching chat history' });
   }
 };
 
@@ -255,24 +155,12 @@ const getChatHistory = async (req, res) => {
 const getConversation = async (req, res) => {
   try {
     const chat = await Chat.findOne({ conversationId: req.params.conversationId });
+    if (!chat) return res.status(404).json({ success: false, message: 'Conversation not found' });
 
-    if (!chat) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conversation not found',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: chat,
-    });
+    res.status(200).json({ success: true, data: chat });
   } catch (error) {
     console.error('Get conversation error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching conversation',
-    });
+    res.status(500).json({ success: false, message: 'Error fetching conversation' });
   }
 };
 
@@ -284,34 +172,16 @@ const getConversation = async (req, res) => {
 const deleteConversation = async (req, res) => {
   try {
     const chat = await Chat.findOne({ conversationId: req.params.conversationId });
+    if (!chat) return res.status(404).json({ success: false, message: 'Conversation not found' });
 
-    if (!chat) {
-      return res.status(404).json({
-        success: false,
-        message: 'Conversation not found',
-      });
-    }
-
-    // Check ownership
-    if (req.user && chat.userId && chat.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this conversation',
-      });
-    }
+    if (req.user && chat.userId && chat.userId.toString() !== req.user._id.toString())
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this conversation' });
 
     await Chat.deleteOne({ conversationId: req.params.conversationId });
-
-    res.status(200).json({
-      success: true,
-      message: 'Conversation deleted successfully',
-    });
+    res.status(200).json({ success: true, message: 'Conversation deleted successfully' });
   } catch (error) {
     console.error('Delete conversation error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error deleting conversation',
-    });
+    res.status(500).json({ success: false, message: 'Error deleting conversation' });
   }
 };
 

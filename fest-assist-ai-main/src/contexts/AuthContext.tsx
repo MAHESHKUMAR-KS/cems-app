@@ -21,13 +21,49 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Check for stored user on mount and validate token
+    const initializeAuth = async () => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        try {
+          // Validate token by calling /me endpoint
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          const data = await response.json();
+          
+          if (data.success && data.data) {
+            const userData = {
+              _id: data.data._id,
+              name: data.data.name,
+              email: data.data.email,
+              role: data.data.role,
+            };
+            setUser(userData);
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('Token validation error:', error);
+          // Clear invalid token
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -121,7 +157,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
       }}
     >
-      {children}
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

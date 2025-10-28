@@ -1,8 +1,5 @@
-// Gemini API Configuration
-// Using environment variable for API key (secure)
-export const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyD_K1yN6h12-MknHb4_dmS7dt_2vPfKs_A';
-// Using v1beta API with gemini-1.5-pro model (most reliable for general use)
-export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent';
+export const GEMINI_API_KEY = 'AIzaSyCKttXNlwTrdyzTksVjAUpfcoASAKuxBOQ';
+export const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // System prompt for CEMS AI Assistant
 export const SYSTEM_PROMPT = `You are CEMS AI Assistant, a helpful and friendly AI chatbot for the College Event Management System (CEMS). Your role is to help students, event coordinators, and administrators with:
