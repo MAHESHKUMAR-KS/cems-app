@@ -604,35 +604,70 @@ const AdminDashboard = () => {
                               <FaUsers className="text-primary" />
                               Registered Participants ({event.registrationCount})
                             </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {event.registeredUsers.slice(0, 6).map((registration, i) => {
-                                // Find user details
-                                const registeredUser = users.find(u => u._id === registration.user);
-                                const userName = registeredUser?.name || 'Unknown User';
-                                const userEmail = registeredUser?.email || '';
+                            <div className="space-y-3">
+                              {event.registeredUsers.map((registration, i) => {
+                                const user = typeof registration.user === 'string' ? null : registration.user;
+                                const userName = user?.name || 'Unknown User';
+                                const userEmail = user?.email || '';
                                 const registeredDate = new Date(registration.registeredAt).toLocaleDateString();
 
                                 return (
                                   <div 
                                     key={i} 
-                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/50 border border-border hover:border-primary/50 transition-all"
-                                    title={`${userEmail}\nRegistered: ${registeredDate}`}
+                                    className="p-4 rounded-lg bg-background/70 border border-border hover:border-primary/50 transition-all"
                                   >
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                      {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                    {/* User Basic Info */}
+                                    <div className="flex items-start gap-3 mb-3">
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center text-white font-bold flex-shrink-0">
+                                        {userName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-semibold">{userName}</p>
+                                        <p className="text-sm text-muted-foreground">{userEmail}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Registered: {registeredDate}</p>
+                                      </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium truncate">{userName}</p>
-                                      <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
-                                    </div>
+                                    
+                                    {/* Registration Details */}
+                                    {(registration.phone || registration.college || registration.yearOfStudy) && (
+                                      <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+                                        {registration.phone && (
+                                          <div>
+                                            <span className="text-muted-foreground">Phone:</span>
+                                            <span className="ml-2 font-medium">{registration.phone}</span>
+                                          </div>
+                                        )}
+                                        {registration.college && (
+                                          <div>
+                                            <span className="text-muted-foreground">College:</span>
+                                            <span className="ml-2 font-medium">{registration.college}</span>
+                                          </div>
+                                        )}
+                                        {registration.yearOfStudy && (
+                                          <div>
+                                            <span className="text-muted-foreground">Year:</span>
+                                            <span className="ml-2 font-medium">{registration.yearOfStudy === '1' ? '1st' : registration.yearOfStudy === '2' ? '2nd' : registration.yearOfStudy === '3' ? '3rd' : registration.yearOfStudy === '4' ? '4th' : registration.yearOfStudy} Year</span>
+                                          </div>
+                                        )}
+                                        {registration.department && (
+                                          <div>
+                                            <span className="text-muted-foreground">Department:</span>
+                                            <span className="ml-2 font-medium">{registration.department}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Special Requirements */}
+                                    {registration.specialRequirements && (
+                                      <div className="mt-3 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                                        <p className="text-xs text-yellow-600 dark:text-yellow-400 font-semibold mb-1">Special Requirements:</p>
+                                        <p className="text-sm">{registration.specialRequirements}</p>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
-                              {event.registrationCount > 6 && (
-                                <div className="flex items-center justify-center px-3 py-2 rounded-lg bg-muted text-sm font-medium">
-                                  +{event.registrationCount - 6} more
-                                </div>
-                              )}
                             </div>
                           </div>
                         )}

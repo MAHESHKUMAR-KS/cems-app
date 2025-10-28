@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaArrowLeft, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaUniversity } from 'react-icons/fa';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { mockEvents } from '@/data/mockEvents';
+import { fetchEventById, registerForEvent, Event } from '@/services/eventService';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,11 @@ const EventRegistration = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const event = mockEvents.find((e) => e.id === id);
+  const { user } = useAuth();
+  
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -28,6 +33,41 @@ const EventRegistration = () => {
     department: '',
     specialRequirements: '',
   });
+
+  // Load event data
+  useEffect(() => {
+    const loadEvent = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await fetchEventById(id);
+        setEvent(data);
+      } catch (error) {
+        console.error('Failed to load event:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load event details',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvent();
+  }, [id, toast]);
+
+  // Auto-fill user data if logged in
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
 
   if (!event) {
     return (
@@ -42,7 +82,7 @@ const EventRegistration = () => {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -55,19 +95,54 @@ const EventRegistration = () => {
       return;
     }
 
-    toast({
-      title: 'Registration Successful! 🎉',
-      description: `You've been registered for ${event.title}`,
-    });
+    if (!id) return;
 
-    setTimeout(() => {
-      navigate('/student-dashboard');
-    }, 2000);
+    try {
+      setIsSubmitting(true);
+      
+      // Complete registration via backend API with detailed information
+      await registerForEvent(id, {
+        phone: formData.phone,
+        college: formData.college,
+        yearOfStudy: formData.yearOfStudy,
+        department: formData.department,
+        specialRequirements: formData.specialRequirements,
+      });
+
+      toast({
+        title: 'Registration Successful! 🎉',
+        description: `You've been registered for ${event?.title}`,
+      });
+
+      setTimeout(() => {
+        navigate('/student-dashboard');
+      }, 1500);
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: 'Registration Failed',
+        description: error instanceof Error ? error.message : 'Failed to register for event',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full" />
+          <p className="text-muted-foreground">Loading event...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -264,8 +339,9 @@ const EventRegistration = () => {
                   <Button
                     type="submit"
                     className="flex-1 bg-gradient-to-r from-primary to-accent"
+                    disabled={isSubmitting}
                   >
-                    Complete Registration
+                    {isSubmitting ? 'Registering...' : 'Complete Registration'}
                   </Button>
                 </div>
               </form>

@@ -69,6 +69,27 @@ const eventSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        // Additional registration details
+        phone: {
+          type: String,
+          default: '',
+        },
+        college: {
+          type: String,
+          default: '',
+        },
+        yearOfStudy: {
+          type: String,
+          default: '',
+        },
+        department: {
+          type: String,
+          default: '',
+        },
+        specialRequirements: {
+          type: String,
+          default: '',
+        },
       },
     ],
     registrationCount: {

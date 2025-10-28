@@ -12,7 +12,6 @@ export interface Event {
   category: 'technical' | 'cultural' | 'sports' | 'workshop';
   date: string;
   time: string;
-  registrationDeadline: string;
   venue: string;
   college: string;
   organizer: string;
@@ -20,8 +19,13 @@ export interface Event {
   capacity: number;
   registrationCount: number;
   registeredUsers: Array<{
-    user: string;
+    user: string | { _id: string; name: string; email: string };
     registeredAt: string;
+    phone?: string;
+    college?: string;
+    yearOfStudy?: string;
+    department?: string;
+    specialRequirements?: string;
   }>;
   createdBy: {
     _id: string;
@@ -129,9 +133,23 @@ export const createEvent = async (eventData: Partial<Event>): Promise<Event> => 
 };
 
 /**
+ * Registration details interface
+ */
+export interface RegistrationDetails {
+  phone: string;
+  college: string;
+  yearOfStudy: string;
+  department?: string;
+  specialRequirements?: string;
+}
+
+/**
  * Register for an event
  */
-export const registerForEvent = async (eventId: string): Promise<void> => {
+export const registerForEvent = async (
+  eventId: string,
+  registrationDetails?: RegistrationDetails
+): Promise<void> => {
   try {
     const token = localStorage.getItem('token');
 
@@ -145,6 +163,7 @@ export const registerForEvent = async (eventId: string): Promise<void> => {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
+      body: registrationDetails ? JSON.stringify(registrationDetails) : undefined,
     });
 
     const data = await response.json();

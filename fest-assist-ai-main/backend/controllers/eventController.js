@@ -259,10 +259,18 @@ const registerForEvent = async (req, res) => {
       });
     }
 
-    // Add user to event
+    // Get registration details from request body
+    const { phone, college, yearOfStudy, department, specialRequirements } = req.body;
+
+    // Add user to event with detailed registration info
     event.registeredUsers.push({
       user: req.user._id,
       registeredAt: new Date(),
+      phone: phone || '',
+      college: college || '',
+      yearOfStudy: yearOfStudy || '',
+      department: department || '',
+      specialRequirements: specialRequirements || '',
     });
 
     await event.save();

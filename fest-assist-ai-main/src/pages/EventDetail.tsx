@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaCalendar, FaMapMarkerAlt, FaClock, FaUser, FaUsers, FaArrowLeft } from 'react-icons/fa';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const EventDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   
@@ -32,10 +33,19 @@ const EventDetail = () => {
         
         // Check if current user is already registered
         if (user && data.registeredUsers) {
-          const userRegistered = data.registeredUsers.some(
-            (reg) => reg.user === user._id
-          );
+          const userRegistered = data.registeredUsers.some((reg) => {
+            // Handle both populated (object) and non-populated (string) user data
+            const userId = typeof reg.user === 'string' ? reg.user : reg.user?._id;
+            return userId && userId.toString() === user._id.toString();
+          });
           setIsRegistered(userRegistered);
+          console.log('Registration check:', {
+            userId: user._id,
+            registeredUsers: data.registeredUsers.map(r => 
+              typeof r.user === 'string' ? r.user : r.user?._id
+            ),
+            isRegistered: userRegistered
+          });
         }
       } catch (error) {
         console.error('Failed to load event:', error);
@@ -82,39 +92,8 @@ const EventDetail = () => {
       return;
     }
 
-    if (!id) return;
-
-    try {
-      setIsRegistering(true);
-      await registerForEvent(id);
-      
-      // Update local state
-      setIsRegistered(true);
-      if (event) {
-        setEvent({
-          ...event,
-          registrationCount: event.registrationCount + 1,
-          registeredUsers: [
-            ...event.registeredUsers,
-            { user: user!._id, registeredAt: new Date().toISOString() },
-          ],
-        });
-      }
-
-      toast({
-        title: 'Registration Successful! 🎉',
-        description: `You've successfully registered for ${event?.title}`,
-      });
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast({
-        title: 'Registration Failed',
-        description: error instanceof Error ? error.message : 'Failed to register for event',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsRegistering(false);
-    }
+    // Navigate to registration form page
+    navigate(`/events/${id}/register`);
   };
 
   const handleUnregister = async () => {
@@ -134,9 +113,10 @@ const EventDetail = () => {
         setEvent({
           ...event,
           registrationCount: event.registrationCount - 1,
-          registeredUsers: event.registeredUsers.filter(
-            (reg) => reg.user !== user!._id
-          ),
+          registeredUsers: event.registeredUsers.filter((reg) => {
+            const userId = typeof reg.user === 'string' ? reg.user : reg.user?._id;
+            return userId !== user!._id;
+          }),
         });
       }
 
