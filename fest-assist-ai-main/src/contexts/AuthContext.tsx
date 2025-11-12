@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const data = await response.json();
 
-      // Log detailed error for debugging
+      
       if (!response.ok) {
         console.error('Signup failed:', {
           status: response.status,
