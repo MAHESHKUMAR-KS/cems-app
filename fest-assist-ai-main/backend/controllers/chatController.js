@@ -11,7 +11,7 @@ const generateBotResponse = async (query, context = '') => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Add event info context (for smarter replies)
+    
     const events = await Event.find().limit(5);
     const eventContext = events
       .map(e => `${e.title} (${e.category}) on ${new Date(e.date).toLocaleDateString()} at ${e.venue}`)
