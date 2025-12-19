@@ -3,7 +3,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Chat = require('../models/Chat');
 const Event = require('../models/Event');
 
-// Initialize Gemini client
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Function to query Gemini
