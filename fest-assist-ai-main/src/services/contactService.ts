@@ -80,7 +80,7 @@ export const fetchContactMessages = async (params?: {
   }
 };
 
-// Get single contact message (admin only)
+
 export const fetchContactById = async (id: string): Promise<ContactMessage> => {
   try {
     const token = localStorage.getItem('token');
