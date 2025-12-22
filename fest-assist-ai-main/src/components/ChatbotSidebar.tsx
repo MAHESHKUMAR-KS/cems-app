@@ -27,7 +27,7 @@ const ChatbotSidebar = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Hide chatbot on login and signup pages
+  
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
 
   const scrollToBottom = () => {
