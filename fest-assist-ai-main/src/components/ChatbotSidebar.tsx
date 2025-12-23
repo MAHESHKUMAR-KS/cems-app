@@ -66,7 +66,7 @@ const ChatbotSidebar = () => {
     "My registered events",
   ];
 
-  // Don't render chatbot on auth pages
+  
   if (isAuthPage) {
     return null;
   }
