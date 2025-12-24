@@ -10,7 +10,7 @@ const {
 } = require('../controllers/contactController');
 const { protect, authorize } = require('../middlewares/auth');
 
-// Public route - submit contact
+
 router.post('/', submitContact);
 
 // Admin only routes
